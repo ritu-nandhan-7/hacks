@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>HaboSpace</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="popup">
+  <p id="content"></p>
+  <button id="closePopupBtn">Close</button>
+</div>
+
+<div id="hud">
+  <p>WASD to move • Click panels to view habits</p>
+  <p id="progressText">Single Room • 2 Habit Panels</p>
+</div>
+
+<div id="posterViewer" aria-hidden="true">
+  <div id="posterCard">
+    <button id="posterCloseBtn" type="button" aria-label="Close">×</button>
+    <div id="posterPreview"></div>
+    <p id="posterTitle">Poster</p>
+  </div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.152.2/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module" src="script.js"></script>
+
+</body>
+</html>
