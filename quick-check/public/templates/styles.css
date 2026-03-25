@@ -1,0 +1,218 @@
+body {
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+    background: #1f2321;
+    padding: 30px;
+    color: #e8e6e3;
+}
+
+h1 {
+    font-family: 'Georgia', serif;
+    text-align: center;
+}
+
+.subtitle {
+    text-align: center;
+    color: #a8a6a2;
+}
+
+.container {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    margin-top: 30px;
+}
+
+.card {
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(20px);
+    border-radius: 20px;
+    padding: 28px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+}
+
+.choice-card {
+    flex: 1;
+    max-width: 260px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.add-btn {
+    width: 100%;
+    padding: 14px;
+    border-radius: 14px;
+    border: none;
+    background: #7c9a7e;
+    color: #1f2321;
+    cursor: pointer;
+}
+
+/* Habit UI */
+.habit {
+    background: #2a2f2c;
+    padding: 18px;
+    margin-bottom: 18px;
+    border-radius: 18px;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+    margin-top: 15px;
+}
+
+.cell {
+    width: 100%;
+    padding-top: 100%;
+    background: #3a3f3c;
+    border-radius: 6px;
+}
+
+.cell.active {
+    background: #7c9a7e;
+}
+
+.center {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+input {
+    padding: 14px;
+    margin-top: 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.05);
+    color: #e8e6e3;
+    outline: none;
+}
+
+input::placeholder {
+    color: #8b8883;
+}
+
+input:focus {
+    border-color: #7c9a7e;
+}
+
+button {
+    margin-top: 14px;
+    padding: 14px;
+    border-radius: 12px;
+    border: none;
+    background: #7c9a7e;
+    color: #1f2321;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #6c8a6e;
+}
+
+h1 {
+    font-family: 'Georgia', serif;
+    margin-bottom: 6px;
+}
+
+.subtitle {
+    color: #a8a6a2;
+    margin-bottom: 18px;
+}
+
+h1 {
+    font-family: 'Georgia', serif;
+    margin-bottom: 6px;
+}
+
+.subtitle {
+    color: #a8a6a2;
+    margin-bottom: 18px;
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+}
+
+h1, h2 {
+    font-family: 'Georgia', serif;
+}
+
+/* Habit list container */
+.habit-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: 20px;
+}
+
+/* Each habit row */
+.habit-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    background: rgba(255,255,255,0.04);
+    backdrop-filter: blur(20px);
+    padding: 16px;
+    border-radius: 16px;
+
+    transition: 0.2s;
+}
+
+/* Left side */
+.habit-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* Checkbox */
+.checkbox {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+/* Checked state */
+.checkbox.active {
+    background: #7c9a7e;
+    color: #1f2321;
+    font-weight: bold;
+}
+
+/* Text */
+.habit-text {
+    font-size: 15px;
+}
+
+/* Completed effect */
+.habit-item.completed .habit-text {
+    opacity: 0.5;
+    text-decoration: line-through;
+}
+
+.habit-list {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    margin-top: 20px;
+}
+
+.habit-item {
+    width: 100%;
+    padding: 18px;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.04);
+}

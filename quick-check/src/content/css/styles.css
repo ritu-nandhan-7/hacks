@@ -1,0 +1,309 @@
+/* ---------- ROOT THEME ---------- */
+:root {
+  --bg: #1f2321;
+  --card: #2a2f2c;
+  --surface: #3a3f3c;
+
+  --text-primary: #f1efe9;
+  --text-secondary: #a8a6a2;
+
+  --accent: #7c9a7e;
+  --accent-hover: #6c8a6e;
+
+  --danger: #b26a6a;
+}
+
+/* ---------- GLOBAL ---------- */
+body {
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+    background: #1f2321;
+    color: #e8e6e3;
+}
+
+h1, h2 {
+  font-family: 'Georgia', serif;
+}
+
+.center {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    width: 100%;
+}
+
+/* ---------- CARD ---------- */
+.card {
+  background: var(--card);
+  padding: 25px;
+  border-radius: 18px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+}
+
+/* ---------- INPUT ---------- */
+input, button {
+    width: 100%;
+    padding: 12px;
+    margin-top: 10px;
+
+    border-radius: 10px;
+    border: none;
+
+    font-size: 14px;
+    box-sizing: border-box; /* 🔥 IMPORTANT */
+}
+
+/* Input specific */
+input {
+    background: #3a3f3c;
+    color: white;
+}
+
+/* Button specific */
+button {
+    background: #7c9a7e;
+    color: #1f2321;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #6c8a6e;
+}
+
+/* ---------- CHOOSE PAGE ---------- */
+.container {
+  display: flex;
+  gap: 20px;
+}
+
+.choice-card {
+  width: 220px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.choice-card:hover {
+  transform: translateY(-5px);
+}
+
+.subtitle {
+  color: var(--text-secondary);
+}
+
+/* ---------- HABIT GRID ---------- */
+.habit {
+  margin-bottom: 18px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.cell {
+    aspect-ratio: 1 / 1;   /* 🔥 key fix */
+    background: #3a3f3c;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: 0.2s;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-size: 16px;
+    color: transparent;
+}
+
+.cell.active {
+    background: #7c9a7e;
+    color: #1f2321;
+    font-weight: bold;
+}
+
+/* ---------- QUICK CHECK ---------- */
+.item {
+  display: flex;
+  justify-content: space-between;
+  padding: 15px;
+  border-radius: 14px;
+  margin-bottom: 12px;
+  background: var(--card);
+  cursor: pointer;
+}
+
+.item.done .name {
+  text-decoration: line-through;
+  color: var(--text-secondary);
+}
+
+.checkbox {
+  width: 18px;
+  height: 18px;
+  background: var(--surface);
+  border-radius: 5px;
+}
+
+.item.done .checkbox {
+  background: var(--accent);
+}
+
+.add-btn {
+    width: 100%;
+    max-width: 600px;          /* same as container */
+    display: block;
+    margin: 10px auto 0;
+
+    padding: 18px;             /* same feel as cards */
+    border-radius: 18px;       /* same as .habit */
+    border: none;
+
+    background: #2a2f2c;       /* SAME as card */
+    color: #a8a6a2;
+
+    text-align: center;
+    font-size: 15px;
+    cursor: pointer;
+
+    box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+    transition: 0.2s;
+}
+
+.add-btn:hover {
+    background: #323835;
+}
+
+.profile {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+
+    background: #7c9a7e;
+    color: #1f2321;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-weight: bold;
+    cursor: pointer;
+
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    transition: 0.2s;
+}
+
+.profile:hover {
+    transform: scale(1.08);
+}
+
+.page {
+    max-width: 500px;
+    margin: auto;
+    padding-top: 40px;
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.habit-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px; /* 👈 increase this */
+    margin-top: 24px;
+}
+
+/* Habit item */
+.habit-item {
+    display: flex;
+    align-items: center;
+
+    background: rgba(255,255,255,0.04);
+    backdrop-filter: blur(20px);
+
+    padding: 18px;
+    border-radius: 18px;
+
+    transition: 0.2s;
+}
+
+/* Left side (checkbox + text) */
+.habit-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* Checkbox */
+.checkbox {
+    width: 20px;
+    height: 20px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.2);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.checkbox.active {
+    background: #7c9a7e;
+    color: #1f2321;
+    font-weight: bold;
+}
+
+/* Habit text */
+.habit-text {
+    font-size: 15px;
+}
+
+/* Add button stays same */
+.add-btn {
+    margin-top: 24px;
+}
+
+/* Floating navbar */
+.navbar {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+
+    display: flex;
+    gap: 24px;
+
+    padding: 14px 24px;
+    border-radius: 30px;
+
+    background: rgba(255,255,255,0.06);
+    backdrop-filter: blur(20px);
+
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+}
+
+/* Each item */
+.nav-item {
+    font-size: 13px;
+    color: #a8a6a2;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+/* Active state */
+.nav-item.active {
+    color: #7c9a7e;
+    font-weight: 500;
+}
+
+/* Hover */
+.nav-item:hover {
+    color: #e8e6e3;
+}
