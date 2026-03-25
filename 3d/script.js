@@ -59,6 +59,7 @@ const TROPHY_EXHIBIT = {
   wallInset: 0.18,
   trophyScale: 0.75,
   trophyLift: 1.0,
+  trophyYawOffsetDeg: 90,
   shineMetalness: 0.9,
   shineRoughness: 0.16,
   shineLightDistance: 2.8,
@@ -680,6 +681,7 @@ async function setupTrophyRoomDecor() {
     placeModelOnFloor(trophyModel, 0);
     trophyModel.position.set(points[0].x, TROPHY_EXHIBIT.trophyLift, points[0].z);
     trophyModel.lookAt(centerTarget.x, trophyModel.position.y, centerTarget.z);
+    trophyModel.rotateY(THREE.MathUtils.degToRad(TROPHY_EXHIBIT.trophyYawOffsetDeg));
     trophyDisplayGroup.add(trophyModel);
     addTrophyShineLights(
       trophyDisplayGroup,
