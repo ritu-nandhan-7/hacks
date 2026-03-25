@@ -115,3 +115,21 @@ body {
   padding: 16px;
 }
 
+#roomTransitionOverlay {
+  position: fixed;
+  inset: 0;
+  background: #ffffff;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 40;
+  transition: opacity 420ms ease;
+}
+
+#roomTransitionOverlay.active {
+  opacity: 1;
+}
+
+#roomTransitionOverlay.active.fade-out {
+  opacity: 0;
+}
+
