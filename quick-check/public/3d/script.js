@@ -78,6 +78,26 @@ const POSTER_IMAGE_CONFIG = {
   ],
 };
 
+const GHOST_TUNING = {
+  habitFilePath: "ghost_habit.txt",
+  maxGhosts: 5,
+  targetHeight: 0.62,
+  scaleMultiplier: 0.6,
+  opacity: 0.52,
+  modelLift: 0.68,
+  baseLift: 0.08,
+  verticalBobAmplitude: 0.12,
+  verticalBobSpeedMin: 0.7,
+  verticalBobSpeedMax: 1.3,
+  roamSpeedMin: 0.42,
+  roamSpeedMax: 0.85,
+  targetReachDistance: 0.24,
+  roamInset: 0.15,
+  labelHeight: 0.8,
+  labelScale: 0.14,
+  refreshMs: 4500,
+};
+
 // -----------------------------------------------------
 // HELPERS
 // -----------------------------------------------------
@@ -133,6 +153,7 @@ const posterCloseBtn = document.getElementById("posterCloseBtn");
 const posterPreview = document.getElementById("posterPreview");
 const posterTitle = document.getElementById("posterTitle");
 const roomTransitionOverlay = document.getElementById("roomTransitionOverlay");
+const escapeBtn = document.getElementById("escapeBtn");
 
 let isPosterModalOpen = false;
 let isRoomTransitioning = false;
@@ -181,6 +202,40 @@ function closePosterViewer() {
 
 if (posterCloseBtn) {
   posterCloseBtn.addEventListener("click", closePosterViewer);
+}
+
+function exitThreeDView() {
+  const payload = {
+    type: "HABOSPACE_3D_EXIT",
+    source: "habo-3d",
+    timestamp: Date.now(),
+  };
+
+  if (window.parent && window.parent !== window) {
+    window.parent.postMessage(payload, "*");
+  }
+
+  if (window.opener && !window.opener.closed) {
+    window.opener.postMessage(payload, "*");
+  }
+
+  if (window.history.length > 1) {
+    window.history.back();
+    return;
+  }
+
+  if (document.referrer) {
+    window.location.href = document.referrer;
+    return;
+  }
+
+  if (window.opener && !window.opener.closed) {
+    window.close();
+  }
+}
+
+if (escapeBtn) {
+  escapeBtn.addEventListener("click", exitThreeDView);
 }
 
 renderer.domElement.addEventListener("click", (event) => {
@@ -471,6 +526,8 @@ loadRoomModel(ROOM_CONFIG.hall.path, {
   console.error("Error loading initial room:", error);
 });
 
+refreshGhostsFromFile(true);
+
 // -----------------------------------------------------
 // CHARACTER + ANIMATION
 // -----------------------------------------------------
@@ -574,11 +631,281 @@ const POSTER_TUNING = {
 let posterGroup = null;
 let trophyDisplayGroup = null;
 const posterTextureLoader = new THREE.TextureLoader();
+const ghostGroup = new THREE.Group();
+scene.add(ghostGroup);
+
+let ghosts = [];
+let ghostNameSignature = "";
+let ghostRefreshAccumulator = 0;
+let ghostModelTemplate = null;
 
 function getPosterImagePath(index) {
   const filename = POSTER_IMAGE_CONFIG.files[index];
   if (!filename) return null;
   return `${POSTER_IMAGE_CONFIG.folderPath}${filename}`;
+}
+
+function parseGhostNames(text) {
+  if (!text) return [];
+
+  const rawParts = text
+    .split(/\r?\n|,/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  const deduped = [];
+  const seen = new Set();
+  for (const part of rawParts) {
+    const key = part.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(part);
+    if (deduped.length >= GHOST_TUNING.maxGhosts) break;
+  }
+
+  return deduped;
+}
+
+async function loadGhostNamesFromFile() {
+  try {
+    const response = await fetch(`${GHOST_TUNING.habitFilePath}?t=${Date.now()}`, {
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      console.warn("ghost_habit.txt fetch failed:", response.status, response.statusText);
+      return [];
+    }
+
+    const text = await response.text();
+    return parseGhostNames(text);
+  } catch (error) {
+    console.warn("ghost_habit.txt load failed:", error);
+    return [];
+  }
+}
+
+function getGhostRoamTarget() {
+  const inset = GHOST_TUNING.roamInset;
+  const x = THREE.MathUtils.randFloat(roomBounds.min.x + inset, roomBounds.max.x - inset);
+  const z = THREE.MathUtils.randFloat(roomBounds.min.z + inset, roomBounds.max.z - inset);
+  return new THREE.Vector3(x, 0, z);
+}
+
+function clampGhostToRoom(position) {
+  const inset = GHOST_TUNING.roamInset;
+  position.x = THREE.MathUtils.clamp(position.x, roomBounds.min.x + inset, roomBounds.max.x - inset);
+  position.z = THREE.MathUtils.clamp(position.z, roomBounds.min.z + inset, roomBounds.max.z - inset);
+  return position;
+}
+
+function makeGhostLabelSprite(labelText) {
+  const text = (labelText || "").trim() || "habit";
+  const canvas = document.createElement("canvas");
+  const context = canvas.getContext("2d");
+  if (!context) {
+    return null;
+  }
+
+  const fontSize = 32;
+  const horizontalPadding = 36;
+  const topPadding = 14;
+  const bottomPadding = 12;
+  const strokePadding = 8;
+
+  context.font = `bold ${fontSize}px Arial`;
+  const measuredTextWidth = Math.ceil(context.measureText(text).width);
+
+  canvas.width = Math.max(140, measuredTextWidth + horizontalPadding * 2);
+  canvas.height = fontSize + topPadding + bottomPadding + strokePadding;
+
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  context.font = `bold ${fontSize}px Arial`;
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  context.fillStyle = "rgba(7, 12, 24, 0.62)";
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.strokeStyle = "rgba(188, 222, 255, 0.88)";
+  context.lineWidth = 2;
+  context.strokeRect(1, 1, canvas.width - 2, canvas.height - 2);
+
+  context.fillStyle = "#e9f5ff";
+  context.fillText(text, canvas.width / 2, canvas.height * 0.52);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.minFilter = THREE.LinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+
+  const material = new THREE.SpriteMaterial({
+    map: texture,
+    transparent: true,
+    depthWrite: false,
+    depthTest: true,
+  });
+
+  const sprite = new THREE.Sprite(material);
+  sprite.scale.set(GHOST_TUNING.labelScale * 1.6, GHOST_TUNING.labelScale * 0.42, 1);
+  sprite.position.set(0, GHOST_TUNING.labelHeight, 0.18);
+  return sprite;
+}
+
+function applyGhostMaterialStyle(model) {
+  model.traverse((node) => {
+    if (!node.isMesh) return;
+    node.frustumCulled = false;
+
+    const materials = Array.isArray(node.material) ? node.material : [node.material];
+    materials.forEach((material) => {
+      if (!material) return;
+      material.transparent = true;
+      material.opacity = GHOST_TUNING.opacity;
+      material.depthWrite = false;
+      material.side = THREE.DoubleSide;
+      if ("emissive" in material) {
+        material.emissive = new THREE.Color(0x9fd5ff);
+        material.emissiveIntensity = 0.25;
+      }
+      material.needsUpdate = true;
+    });
+  });
+}
+
+function clearGhosts() {
+  ghosts.forEach((ghost) => {
+    ghostGroup.remove(ghost.group);
+  });
+  ghosts = [];
+}
+
+async function ensureGhostTemplateLoaded() {
+  if (ghostModelTemplate) return ghostModelTemplate;
+
+  return new Promise((resolve, reject) => {
+    loader.load(
+      "models/ghost.glb",
+      (gltf) => {
+        ghostModelTemplate = gltf.scene;
+        resolve(ghostModelTemplate);
+      },
+      undefined,
+      (error) => reject(error)
+    );
+  });
+}
+
+function createGhostEntity(name, index, totalCount) {
+  const group = new THREE.Group();
+  const model = ghostModelTemplate.clone(true);
+
+  fitModelToHeight(model, GHOST_TUNING.targetHeight);
+  model.scale.multiplyScalar(GHOST_TUNING.scaleMultiplier);
+  const normalizedSize = getModelSize(model);
+  if (normalizedSize.y < 0.28) {
+    model.scale.multiplyScalar(0.28 / Math.max(0.001, normalizedSize.y));
+  }
+  placeModelOnFloor(model, 0);
+  model.position.y += GHOST_TUNING.modelLift;
+  applyGhostMaterialStyle(model);
+  group.add(model);
+
+  const label = makeGhostLabelSprite(name);
+  if (label) {
+    group.add(label);
+  }
+
+  const spread = Math.max(0.7, (roomBounds.max.x - roomBounds.min.x) * 0.13);
+  const centeredIndex = index - (totalCount - 1) * 0.5;
+  group.position.set(
+    (roomBounds.min.x + roomBounds.max.x) * 0.5 + centeredIndex * spread,
+    0,
+    (roomBounds.min.z + roomBounds.max.z) * 0.5
+  );
+
+  return {
+    name,
+    group,
+    model,
+    label,
+    baseY: GHOST_TUNING.baseLift + THREE.MathUtils.randFloat(0.0, 0.12),
+    bobSpeed: THREE.MathUtils.randFloat(
+      GHOST_TUNING.verticalBobSpeedMin,
+      GHOST_TUNING.verticalBobSpeedMax
+    ),
+    bobOffset: THREE.MathUtils.randFloat(0, Math.PI * 2),
+    roamSpeed: THREE.MathUtils.randFloat(GHOST_TUNING.roamSpeedMin, GHOST_TUNING.roamSpeedMax),
+    target: getGhostRoamTarget(),
+    targetCooldown: THREE.MathUtils.randFloat(0.5, 2.2),
+    heading: new THREE.Vector3(0, 0, 1),
+  };
+}
+
+async function refreshGhostsFromFile(force = false) {
+  const names = await loadGhostNamesFromFile();
+  const signature = names.join("|").toLowerCase();
+
+  if (!force && signature === ghostNameSignature) {
+    return;
+  }
+
+  ghostNameSignature = signature;
+  clearGhosts();
+
+  if (names.length === 0) {
+    return;
+  }
+
+  try {
+    await ensureGhostTemplateLoaded();
+  } catch (error) {
+    console.error("Error loading models/ghost.glb:", error);
+    return;
+  }
+
+  names.forEach((name, index) => {
+    const ghost = createGhostEntity(name, index, names.length);
+    ghosts.push(ghost);
+    ghostGroup.add(ghost.group);
+  });
+}
+
+function updateGhosts(deltaTime, elapsedTime) {
+  ghostRefreshAccumulator += deltaTime * 1000;
+  if (ghostRefreshAccumulator >= GHOST_TUNING.refreshMs) {
+    ghostRefreshAccumulator = 0;
+    refreshGhostsFromFile(false);
+  }
+
+  ghosts.forEach((ghost) => {
+    ghost.targetCooldown -= deltaTime;
+
+    const toTarget = ghost.target.clone().sub(ghost.group.position);
+    toTarget.y = 0;
+    const distanceToTarget = toTarget.length();
+
+    if (distanceToTarget <= GHOST_TUNING.targetReachDistance || ghost.targetCooldown <= 0) {
+      ghost.target = getGhostRoamTarget();
+      ghost.targetCooldown = THREE.MathUtils.randFloat(1.1, 3.5);
+    }
+
+    if (distanceToTarget > 0.0001) {
+      toTarget.normalize();
+      ghost.heading.lerp(toTarget, 0.06);
+      ghost.heading.normalize();
+      ghost.group.position.addScaledVector(ghost.heading, ghost.roamSpeed * deltaTime);
+      clampGhostToRoom(ghost.group.position);
+
+      const desiredYaw = Math.atan2(ghost.heading.x, ghost.heading.z);
+      const yawDelta = THREE.MathUtils.euclideanModulo(
+        desiredYaw - ghost.group.rotation.y + Math.PI,
+        Math.PI * 2
+      ) - Math.PI;
+      ghost.group.rotation.y += yawDelta * 0.08;
+    }
+
+    const bob = Math.sin(elapsedTime * ghost.bobSpeed + ghost.bobOffset);
+    ghost.group.position.y = ghost.baseY + bob * GHOST_TUNING.verticalBobAmplitude;
+  });
 }
 
 function createPoster(x, y, z, width, height, color, imagePath, label) {
@@ -846,6 +1173,12 @@ const keys = { w: false, a: false, s: false, d: false };
 
 window.addEventListener("keydown", (event) => {
   const key = event.key.toLowerCase();
+
+  if (key === "escape") {
+    event.preventDefault();
+    exitThreeDView();
+    return;
+  }
 
   if (isPosterModalOpen || isRoomTransitioning) return;
 
@@ -1118,6 +1451,7 @@ function animate() {
   requestAnimationFrame(animate);
 
   const deltaTime = clock.getDelta();
+  const elapsedTime = clock.elapsedTime;
 
   if (mixer) {
     mixer.update(deltaTime);
@@ -1125,6 +1459,7 @@ function animate() {
   }
 
   updateMovement(deltaTime);
+  updateGhosts(deltaTime, elapsedTime);
   checkDoorTriggerTransition();
   updateCamera();
 
