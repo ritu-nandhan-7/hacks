@@ -1,28 +1,18 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { ArrowLeft, Zap, Trophy, Plus } from "lucide-react";
-import initialQuests from "../data/sidequests.json";
 import AddSidequestModal from "../components/AddSidequestModal";
+import type { Sidequest } from "../types/userData";
 
-export default function SidequestsScreen({ onBack }: { onBack: () => void }) {
-  const [quests, setQuests] = useState(initialQuests);
+export default function SidequestsScreen({
+  onBack,
+  quests,
+  onChange,
+}: {
+  onBack: () => void;
+  quests: Sidequest[];
+  onChange: (quests: Sidequest[]) => void;
+}) {
   const [showModal, setShowModal] = useState(false);
-
-  // Load from localStorage on mount, fallback to initial data
-  useEffect(() => {
-    const stored = localStorage.getItem("sidequests");
-    if (stored) {
-      try {
-        setQuests(JSON.parse(stored));
-      } catch (e) {
-        console.error("Failed to load sidequests from localStorage", e);
-      }
-    }
-  }, []);
-
-  // Save to localStorage whenever quests change
-  useEffect(() => {
-    localStorage.setItem("sidequests", JSON.stringify(quests));
-  }, [quests]);
 
   const handleAdd = (newQuestData: {
     title: string;
@@ -36,7 +26,7 @@ export default function SidequestsScreen({ onBack }: { onBack: () => void }) {
       date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" }),
       ...newQuestData,
     };
-    setQuests([newQuest, ...quests]);
+    onChange([newQuest, ...quests]);
     setShowModal(false);
   };
 

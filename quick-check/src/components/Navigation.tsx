@@ -1,5 +1,5 @@
 import { Home, Zap, Target, User, Bell } from "lucide-react";
-import { BetNotification } from "../hooks/useNotifications";
+import type { BetNotification } from "../hooks/useNotifications";
 
 export default function Navigation({
   screen,

@@ -1,11 +1,49 @@
 import { useState } from "react";
+import { loginOrRegisterWithEmail } from "../lib/firebase";
+import type { SessionUser } from "../types/userData";
 
-export default function LoginScreen({ onLogin }: { onLogin: (userId: string) => void }) {
+export default function LoginScreen({ onLogin }: { onLogin: (user: SessionUser) => void }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [focused, setFocused] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const canContinue = email.trim().length > 0 && password.length > 0;
+
+  const handleEmailLogin = async () => {
+    if (!canContinue || isLoading) return;
+
+    setError(null);
+    setIsLoading(true);
+    try {
+      const credential = await loginOrRegisterWithEmail(
+        email.toLowerCase().trim(),
+        password
+      );
+
+      onLogin({
+        id: credential.user.uid,
+        email: credential.user.email || email.toLowerCase().trim(),
+        isGuest: false,
+      });
+    } catch (authError) {
+      const message =
+        (authError as { message?: string })?.message ||
+        "Unable to sign in right now. Please try again.";
+      setError(message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGuestLogin = () => {
+    onLogin({
+      id: "guest",
+      email: "guest@local",
+      isGuest: true,
+    });
+  };
 
   return (
     <div style={{
@@ -139,7 +177,11 @@ export default function LoginScreen({ onLogin }: { onLogin: (userId: string) => 
                 onChange={e => setPassword(e.target.value)}
                 onFocus={() => setFocused("password")}
                 onBlur={() => setFocused(null)}
-                onKeyDown={e => e.key === "Enter" && canContinue && onLogin()}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && canContinue) {
+                    void handleEmailLogin();
+                  }
+                }}
                 style={{
                   width: "100%",
                   padding: "14px 16px",
@@ -158,26 +200,34 @@ export default function LoginScreen({ onLogin }: { onLogin: (userId: string) => 
 
             {/* Continue button */}
             <button
-              onClick={() => onLogin(email.toLowerCase().trim())}
-              disabled={!canContinue}
+              onClick={() => {
+                void handleEmailLogin();
+              }}
+              disabled={!canContinue || isLoading}
               style={{
                 width: "100%",
                 padding: "16px",
                 borderRadius: "14px",
                 border: "none",
                 marginTop: "8px",
-                background: canContinue ? "#7c9a7e" : "rgba(255,255,255,0.06)",
-                color: canContinue ? "#1f2321" : "#a8a6a2",
+                background: canContinue && !isLoading ? "#7c9a7e" : "rgba(255,255,255,0.06)",
+                color: canContinue && !isLoading ? "#1f2321" : "#a8a6a2",
                 fontSize: "15px",
                 fontWeight: 700,
-                cursor: canContinue ? "pointer" : "not-allowed",
+                cursor: canContinue && !isLoading ? "pointer" : "not-allowed",
                 fontFamily: "inherit",
                 transition: "all 0.2s ease",
-                boxShadow: canContinue ? "0 4px 20px rgba(124,154,126,0.35)" : "none",
+                boxShadow: canContinue && !isLoading ? "0 4px 20px rgba(124,154,126,0.35)" : "none",
               }}
             >
-              Continue
+              {isLoading ? "Please wait..." : "Continue"}
             </button>
+
+            {error && (
+              <p style={{ color: "#c4855a", fontSize: "12px", margin: "6px 2px 0" }}>
+                {error}
+              </p>
+            )}
 
           </div>
 
@@ -195,7 +245,7 @@ export default function LoginScreen({ onLogin }: { onLogin: (userId: string) => 
 
           {/* Guest shortcut */}
           <button
-            onClick={() => onLogin("guest")}
+            onClick={handleGuestLogin}
             style={{
               width: "100%",
               padding: "14px",

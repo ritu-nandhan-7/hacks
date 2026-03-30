@@ -1,55 +1,23 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { ArrowLeft, Target, CheckCircle, XCircle, LogOut } from "lucide-react";
 import AddBetModal from "../components/AddBetModal";
-
-interface Bet {
-  id: string;
-  title: string;
-  activity: string;
-  opponent: string;
-  stake: string;
-  status: "pending" | "accepted" | "completed" | "failed";
-  frequency: string;
-  startDate: string;
-  endDate: string;
-  linkedSidequests: string[];
-  logsThisMonth: Array<{
-    date: string;
-    verificationStatus: string;
-    verifiedBy: string | null;
-  }>;
-}
+import type { Bet } from "../types/userData";
 
 export default function BetsScreen({
   onBack,
+  bets,
+  onChange,
   onShowSidequest,
   onAddNotification,
 }: {
   onBack: () => void;
+  bets: Bet[];
+  onChange: (bets: Bet[]) => void;
   onShowSidequest?: (questId: string) => void;
   onAddNotification?: (notification: any) => void;
 }) {
-  const [bets, setBets] = useState<Bet[]>([]);
   const [showAddBet, setShowAddBet] = useState(false);
   const [loggingBetId, setLoggingBetId] = useState<string | null>(null);
-
-  useEffect(() => {
-    // Load bets from JSON
-    const loadBets = async () => {
-      try {
-        const response = await fetch("/src/data/bets.json");
-        const data = await response.json();
-        const betsWithTitles = data.map((bet: Bet) => ({
-          ...bet,
-          title: `${bet.opponent} bets you won't ${bet.activity}`,
-        }));
-        setBets(betsWithTitles);
-      } catch (error) {
-        console.error("Failed to load bets:", error);
-      }
-    };
-    loadBets();
-  }, []);
 
   const handleAddBet = (betData: {
     activity: string;
@@ -72,25 +40,25 @@ export default function BetsScreen({
       linkedSidequests: [],
       logsThisMonth: [],
     };
-    setBets([...bets, newBet]);
+    onChange([...bets, newBet]);
     setShowAddBet(false);
   };
 
   const handleConfirmBet = (betId: string) => {
-    setBets(
+    onChange(
       bets.map((b) => (b.id === betId ? { ...b, status: "accepted" } : b))
     );
   };
 
   const handleDenyBet = (betId: string) => {
-    setBets(
+    onChange(
       bets.map((b) => (b.id === betId ? { ...b, status: "failed" } : b))
     );
   };
 
   const handleLogActivity = (betId: string) => {
     const today = new Date().toISOString().split("T")[0];
-    setBets(
+    onChange(
       bets.map((b) =>
         b.id === betId
           ? {
@@ -103,6 +71,15 @@ export default function BetsScreen({
           : b
       )
     );
+    const bet = bets.find((item) => item.id === betId);
+    if (bet && onAddNotification) {
+      onAddNotification({
+        id: `notif-${Date.now()}`,
+        type: "bet-log",
+        title: "Bet activity logged",
+        message: `${bet.activity} sent to ${bet.opponent} for verification`,
+      });
+    }
     setLoggingBetId(null);
   };
 

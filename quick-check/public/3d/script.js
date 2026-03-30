@@ -78,6 +78,32 @@ const POSTER_IMAGE_CONFIG = {
   ],
 };
 
+const THREE_ROOM_IMAGES_KEY = "habo_3d_room_images";
+const THREE_TROPHY_IMAGES_KEY = "habo_3d_trophy_images";
+
+function loadUserImageList(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((value) => typeof value === "string" && value.trim().length > 0);
+  } catch {
+    return [];
+  }
+}
+
+function resolveImagePath(folderPath, candidate) {
+  if (!candidate) return null;
+  if (/^(https?:|data:|blob:|\/)/i.test(candidate)) {
+    return candidate;
+  }
+  return `${folderPath}${candidate}`;
+}
+
+const userRoomImages = loadUserImageList(THREE_ROOM_IMAGES_KEY);
+const userTrophyImages = loadUserImageList(THREE_TROPHY_IMAGES_KEY);
+
 const GHOST_TUNING = {
   habitFilePath: "ghost_habit.txt",
   maxGhosts: 5,
@@ -211,6 +237,12 @@ function exitThreeDView() {
     timestamp: Date.now(),
   };
 
+  try {
+    sessionStorage.setItem("habo_3d_return", "gamified-home");
+  } catch {
+    // Ignore storage failures and continue navigation.
+  }
+
   if (window.parent && window.parent !== window) {
     window.parent.postMessage(payload, "*");
   }
@@ -219,19 +251,7 @@ function exitThreeDView() {
     window.opener.postMessage(payload, "*");
   }
 
-  if (window.history.length > 1) {
-    window.history.back();
-    return;
-  }
-
-  if (document.referrer) {
-    window.location.href = document.referrer;
-    return;
-  }
-
-  if (window.opener && !window.opener.closed) {
-    window.close();
-  }
+  window.location.href = "/";
 }
 
 if (escapeBtn) {
@@ -640,9 +660,12 @@ let ghostRefreshAccumulator = 0;
 let ghostModelTemplate = null;
 
 function getPosterImagePath(index) {
+  if (userRoomImages.length > 0) {
+    return userRoomImages[index] || null;
+  }
+
   const filename = POSTER_IMAGE_CONFIG.files[index];
-  if (!filename) return null;
-  return `${POSTER_IMAGE_CONFIG.folderPath}${filename}`;
+  return resolveImagePath(POSTER_IMAGE_CONFIG.folderPath, filename);
 }
 
 function parseGhostNames(text) {
@@ -1020,9 +1043,13 @@ async function setupTrophyRoomDecor() {
     console.error("Failed to load trophy model:", error);
   }
 
-  for (let index = 0; index < TROPHY_EXHIBIT.imageFiles.length; index += 1) {
-    const imagePath = `${TROPHY_EXHIBIT.imageFolderPath}${TROPHY_EXHIBIT.imageFiles[index]}`;
+  const trophyImages = userTrophyImages.length > 0 ? userTrophyImages : TROPHY_EXHIBIT.imageFiles;
+
+  for (let index = 0; index < trophyImages.length; index += 1) {
+    const imagePath = resolveImagePath(TROPHY_EXHIBIT.imageFolderPath, trophyImages[index]);
+    if (!imagePath) continue;
     const point = points[index + 1];
+    if (!point) break;
     const poster = createPoster(
       point.x,
       TROPHY_EXHIBIT.posterYFromFloor,
@@ -1176,6 +1203,10 @@ window.addEventListener("keydown", (event) => {
 
   if (key === "escape") {
     event.preventDefault();
+    if (isPosterModalOpen) {
+      closePosterViewer();
+      return;
+    }
     exitThreeDView();
     return;
   }

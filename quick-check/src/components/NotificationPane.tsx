@@ -1,5 +1,5 @@
 import { Bell, Check, X } from "lucide-react";
-import { BetNotification } from "../hooks/useNotifications";
+import type { BetNotification } from "../hooks/useNotifications";
 
 interface NotificationPaneProps {
   notifications: BetNotification[];

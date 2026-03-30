@@ -1,18 +1,12 @@
 import { useState, useEffect } from "react";
 import { Zap, Target, ArrowLeft, CheckCircle, XCircle, Plus, Trash2, Star } from "lucide-react";
-import initialQuests from "../data/sidequests.json";
 import AddSidequestModal from "../components/AddSidequestModal";
+import type { Bet, Sidequest, UserStats } from "../types/userData";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
-type Quest = { id: number; title: string; date: string; xp: string; brownie: string; achievements: string[]; summary: string };
-type Bet   = { id: number; title: string; with: string; myDone: boolean; theirDone: boolean; reward: string };
-
-const INIT_BETS: Bet[] = [
-  { id: 1, title: "Run 1km today",    with: "Arjun", myDone: false, theirDone: true,  reward: "+1 Rep · +10 🍪" },
-  { id: 2, title: "Meditate 10 mins", with: "Priya", myDone: true,  theirDone: false, reward: "+1 Rep · +10 🍪" },
-];
+type Quest = Sidequest;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // House SVG — pixel-art aesthetic
@@ -233,27 +227,17 @@ function PanelSheet({ title, emoji, onClose, children }: {
 // ─────────────────────────────────────────────────────────────────────────────
 // Sidequests Panel
 // ─────────────────────────────────────────────────────────────────────────────
-function SidequestsPanel({ onClose }: { onClose: () => void }) {
-  const [quests, setQuests] = useState<Quest[]>(initialQuests);
+function SidequestsPanel({
+  onClose,
+  quests,
+  onChange,
+}: {
+  onClose: () => void;
+  quests: Quest[];
+  onChange: (quests: Quest[]) => void;
+}) {
   const [confirmId, setConfirmId] = useState<number | null>(null);
   const [showModal, setShowModal] = useState(false);
-
-  // Load from localStorage on mount
-  useEffect(() => {
-    const stored = localStorage.getItem("sidequests");
-    if (stored) {
-      try {
-        setQuests(JSON.parse(stored));
-      } catch (e) {
-        console.error("Failed to load sidequests from localStorage", e);
-      }
-    }
-  }, []);
-
-  // Save to localStorage whenever quests change
-  useEffect(() => {
-    localStorage.setItem("sidequests", JSON.stringify(quests));
-  }, [quests]);
 
   const addQuest = (newQuestData: {
     title: string;
@@ -267,12 +251,12 @@ function SidequestsPanel({ onClose }: { onClose: () => void }) {
       date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" }),
       ...newQuestData,
     };
-    setQuests(prev => [newQuest, ...prev]);
+    onChange([newQuest, ...quests]);
     setShowModal(false);
   };
 
-  const deleteQuest = (id: number) => { 
-    setQuests(prev => prev.filter(q => q.id !== id)); 
+  const deleteQuest = (id: number) => {
+    onChange(quests.filter((quest) => quest.id !== id));
     setConfirmId(null); 
   };
 
@@ -327,21 +311,52 @@ function SidequestsPanel({ onClose }: { onClose: () => void }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Bets Panel
 // ─────────────────────────────────────────────────────────────────────────────
-function BetsPanel({ onClose }: { onClose: () => void }) {
-  const [bets, setBets] = useState<Bet[]>(INIT_BETS);
-  const [confirmId, setConfirmId] = useState<number | null>(null);
-  const [nextId, setNextId] = useState(50);
+function BetsPanel({
+  onClose,
+  bets,
+  onChange,
+}: {
+  onClose: () => void;
+  bets: Bet[];
+  onChange: (bets: Bet[]) => void;
+}) {
+  const [confirmId, setConfirmId] = useState<string | null>(null);
+  const [nextId, setNextId] = useState(200);
 
   const addBet = () => {
     const title = prompt("Bet task?");
     if (!title?.trim()) return;
     const person = prompt("Bet with who?");
     if (!person?.trim()) return;
-    setBets(prev => [...prev, { id: nextId, title: title.trim(), with: person.trim(), myDone: false, theirDone: false, reward: "+1 Rep · +10 🍪" }]);
+
+    const today = new Date().toISOString().split("T")[0];
+    onChange([
+      ...bets,
+      {
+        id: `bet-${nextId}`,
+        title: title.trim(),
+        activity: title.trim(),
+        opponent: person.trim(),
+        stake: "+1 Rep · +10 🍪",
+        status: "pending",
+        frequency: "daily",
+        startDate: today,
+        endDate: today,
+        linkedSidequests: [],
+        logsThisMonth: [],
+      },
+    ]);
     setNextId(n => n + 1);
   };
 
-  const deleteBet = (id: number) => { setBets(prev => prev.filter(b => b.id !== id)); setConfirmId(null); };
+  const deleteBet = (id: string) => {
+    onChange(bets.filter((bet) => bet.id !== id));
+    setConfirmId(null);
+  };
+
+  const setStatus = (id: string, status: Bet["status"]) => {
+    onChange(bets.map((bet) => (bet.id === id ? { ...bet, status } : bet)));
+  };
 
   return (
     <PanelSheet title="Group Bets" emoji="🎯" onClose={onClose}>
@@ -353,13 +368,13 @@ function BetsPanel({ onClose }: { onClose: () => void }) {
         <div key={bet.id} style={panelCard}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "10px" }}>
             <div>
-              <div style={panelCardTitle}>{bet.title}</div>
-              <div style={panelCardSub}>vs {bet.with} · {bet.reward}</div>
+              <div style={panelCardTitle}>{bet.activity}</div>
+              <div style={panelCardSub}>vs {bet.opponent} · {bet.stake}</div>
             </div>
             <button onClick={() => setConfirmId(bet.id)} style={trashBtnStyle}><Trash2 size={13} /></button>
           </div>
           <div style={{ display: "flex", gap: "8px" }}>
-            {[{ player: "You", done: bet.myDone }, { player: bet.with, done: bet.theirDone }].map((p, i) => (
+            {[{ player: "You", done: bet.status === "accepted" || bet.status === "completed" }, { player: bet.opponent, done: bet.status === "completed" }].map((p, i) => (
               <div key={i} style={{
                 flex: 1, padding: "8px", borderRadius: "10px",
                 background: "rgba(255,255,255,0.04)",
@@ -372,8 +387,23 @@ function BetsPanel({ onClose }: { onClose: () => void }) {
               </div>
             ))}
           </div>
+
+          {bet.status === "pending" && (
+            <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
+              <button onClick={() => setStatus(bet.id, "accepted")} style={cancelBtnStyle}>Accept</button>
+              <button onClick={() => setStatus(bet.id, "failed")} style={deleteBtnStyle}>Reject</button>
+            </div>
+          )}
+
+          {bet.status === "accepted" && (
+            <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
+              <button onClick={() => setStatus(bet.id, "completed")} style={cancelBtnStyle}>Mark Complete</button>
+              <button onClick={() => setStatus(bet.id, "failed")} style={deleteBtnStyle}>Mark Failed</button>
+            </div>
+          )}
+
           <div style={{ marginTop: "8px", display: "flex", alignItems: "center", gap: "4px", fontSize: "11px", color: "#f5c842" }}>
-            <Star size={9} /> Both complete: {bet.reward}
+            <Star size={9} /> Status: {bet.status}
           </div>
         </div>
       ))}
@@ -387,7 +417,7 @@ function BetsPanel({ onClose }: { onClose: () => void }) {
             <p style={{ color: "#a8a6a2", fontSize: "12px", textAlign: "center", margin: "0 0 18px" }}>No points will be awarded.</p>
             <div style={{ display: "flex", gap: "8px" }}>
               <button onClick={() => setConfirmId(null)} style={cancelBtnStyle}>Keep it</button>
-              <button onClick={() => deleteBet(confirmId)} style={deleteBtnStyle}>Cancel Bet</button>
+                <button onClick={() => deleteBet(confirmId)} style={deleteBtnStyle}>Cancel Bet</button>
             </div>
           </div>
         </div>
@@ -399,7 +429,21 @@ function BetsPanel({ onClose }: { onClose: () => void }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Main Gamified Screen
 // ─────────────────────────────────────────────────────────────────────────────
-export default function GamifiedScreen({ onExit }: { onExit: () => void }) {
+export default function GamifiedScreen({
+  onExit,
+  sidequests,
+  bets,
+  stats,
+  onSidequestsChange,
+  onBetsChange,
+}: {
+  onExit: () => void;
+  sidequests: Sidequest[];
+  bets: Bet[];
+  stats: UserStats;
+  onSidequestsChange: (sidequests: Sidequest[]) => void;
+  onBetsChange: (bets: Bet[]) => void;
+}) {
   const [panel, setPanel] = useState<"quests" | "bets" | null>(null);
   const [showHouseDetail, setShowHouseDetail] = useState(false);
   const [houseZooming, setHouseZooming] = useState(false);
@@ -412,6 +456,7 @@ export default function GamifiedScreen({ onExit }: { onExit: () => void }) {
     setHouseZooming(true);
 
     setTimeout(() => {
+        sessionStorage.setItem("habo_3d_return", "gamified-home");
         window.location.href = "/3d/index.html";
     }, 600);
   };
@@ -528,7 +573,7 @@ export default function GamifiedScreen({ onExit }: { onExit: () => void }) {
           border: "1px solid rgba(255,255,255,0.06)",
           boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
         }}>
-          {[["⭐", "340 XP"], ["🍪", "1,200"], ["🏆", "8 Wins"]].map(([icon, val], i) => (
+          {[["⭐", `${stats.reputationPoints} XP`], ["🍪", `${stats.browniePoints}`], ["🏆", `${stats.wins} Wins`]].map(([icon, val], i) => (
             <div key={i} style={{ textAlign: "center" }}>
               <div style={{ fontSize: "15px" }}>{icon}</div>
               <div style={{ fontSize: "11px", color: "#a8a6a2", fontWeight: 600, marginTop: "2px" }}>{val}</div>
@@ -538,8 +583,20 @@ export default function GamifiedScreen({ onExit }: { onExit: () => void }) {
       </div>
 
       {/* Panels */}
-      {panel === "quests" && <SidequestsPanel onClose={() => setPanel(null)} />}
-      {panel === "bets"   && <BetsPanel       onClose={() => setPanel(null)} />}
+      {panel === "quests" && (
+        <SidequestsPanel
+          quests={sidequests}
+          onChange={onSidequestsChange}
+          onClose={() => setPanel(null)}
+        />
+      )}
+      {panel === "bets" && (
+        <BetsPanel
+          bets={bets}
+          onChange={onBetsChange}
+          onClose={() => setPanel(null)}
+        />
+      )}
 
       {/* House detail */}
       {showHouseDetail && <HouseDetail onClose={() => setShowHouseDetail(false)} />}
