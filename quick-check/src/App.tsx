@@ -50,6 +50,8 @@ const USER_DATA_EMAIL_PREFIX = "habo_user_data_email_v1_";
 const THREE_ROOM_IMAGES_KEY = "habo_3d_room_images";
 const THREE_TROPHY_IMAGES_KEY = "habo_3d_trophy_images";
 
+const DEFAULT_LOGIN_EMAIL = "demo@habospace.com";
+const DEFAULT_LOGIN_USER_ID = "default-user";
 const DEFAULT_HABITS: HabitItem[] = [
   { id: 1, name: "Drink water", done: false },
   { id: 2, name: "Move your body", done: false },
@@ -78,9 +80,14 @@ function readInitialSession(): { screen: Screen; user: SessionUser | null } {
     const raw = localStorage.getItem(SESSION_KEY);
     if (!raw) return { screen: "login", user: null };
     const parsed = JSON.parse(raw) as { screen?: Screen; user?: SessionUser | null };
+
+    const isDefaultDemoUser =
+      parsed.user?.id === DEFAULT_LOGIN_USER_ID &&
+      parsed.user?.email?.toLowerCase().trim() === DEFAULT_LOGIN_EMAIL;
+
     return {
-      screen: parsed.user ? parsed.screen || "choose" : "login",
-      user: parsed.user || null,
+      screen: isDefaultDemoUser ? parsed.screen || "choose" : "login",
+      user: isDefaultDemoUser ? parsed.user || null : null,
     };
   } catch {
     return { screen: "login", user: null };

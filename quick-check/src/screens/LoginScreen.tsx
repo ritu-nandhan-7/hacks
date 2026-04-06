@@ -1,46 +1,31 @@
 import { useState } from "react";
-import { loginOrRegisterWithEmail } from "../lib/firebase";
 import type { SessionUser } from "../types/userData";
 
+const DEFAULT_EMAIL = "demo@habospace.com";
+const DEFAULT_PASSWORD = "123456";
+const DEFAULT_USER_ID = "default-user";
+
 export default function LoginScreen({ onLogin }: { onLogin: (user: SessionUser) => void }) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState(DEFAULT_EMAIL);
+  const [password, setPassword] = useState(DEFAULT_PASSWORD);
   const [focused, setFocused] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const canContinue = email.trim().length > 0 && password.length > 0;
 
   const handleEmailLogin = async () => {
-    if (!canContinue || isLoading) return;
+    if (!canContinue) return;
 
     setError(null);
-    setIsLoading(true);
-    try {
-      const credential = await loginOrRegisterWithEmail(
-        email.toLowerCase().trim(),
-        password
-      );
-
-      onLogin({
-        id: credential.user.uid,
-        email: credential.user.email || email.toLowerCase().trim(),
-        isGuest: false,
-      });
-    } catch (authError) {
-      const message =
-        (authError as { message?: string })?.message ||
-        "Unable to sign in right now. Please try again.";
-      setError(message);
-    } finally {
-      setIsLoading(false);
+    const normalizedEmail = email.toLowerCase().trim();
+    if (normalizedEmail !== DEFAULT_EMAIL || password !== DEFAULT_PASSWORD) {
+      setError("Use the default credentials shown below to continue.");
+      return;
     }
-  };
 
-  const handleGuestLogin = () => {
     onLogin({
-      id: "guest",
-      email: "guest@local",
+      id: DEFAULT_USER_ID,
+      email: DEFAULT_EMAIL,
       isGuest: true,
     });
   };
@@ -203,24 +188,24 @@ export default function LoginScreen({ onLogin }: { onLogin: (user: SessionUser) 
               onClick={() => {
                 void handleEmailLogin();
               }}
-              disabled={!canContinue || isLoading}
+              disabled={!canContinue}
               style={{
                 width: "100%",
                 padding: "16px",
                 borderRadius: "14px",
                 border: "none",
                 marginTop: "8px",
-                background: canContinue && !isLoading ? "#7c9a7e" : "rgba(255,255,255,0.06)",
-                color: canContinue && !isLoading ? "#1f2321" : "#a8a6a2",
+                background: canContinue ? "#7c9a7e" : "rgba(255,255,255,0.06)",
+                color: canContinue ? "#1f2321" : "#a8a6a2",
                 fontSize: "15px",
                 fontWeight: 700,
-                cursor: canContinue && !isLoading ? "pointer" : "not-allowed",
+                cursor: canContinue ? "pointer" : "not-allowed",
                 fontFamily: "inherit",
                 transition: "all 0.2s ease",
-                boxShadow: canContinue && !isLoading ? "0 4px 20px rgba(124,154,126,0.35)" : "none",
+                boxShadow: canContinue ? "0 4px 20px rgba(124,154,126,0.35)" : "none",
               }}
             >
-              {isLoading ? "Please wait..." : "Continue"}
+              Continue
             </button>
 
             {error && (
@@ -231,37 +216,20 @@ export default function LoginScreen({ onLogin }: { onLogin: (user: SessionUser) 
 
           </div>
 
-          {/* Divider */}
           <div style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "12px",
-            margin: "20px 0",
+            marginTop: "16px",
+            padding: "12px",
+            borderRadius: "12px",
+            border: "1px solid rgba(124,154,126,0.35)",
+            background: "rgba(124,154,126,0.08)",
+            color: "#d6e6d7",
+            fontSize: "12px",
+            lineHeight: 1.6,
           }}>
-            <div style={{ flex: 1, height: "1px", background: "rgba(255,255,255,0.06)" }} />
-            <span style={{ color: "#a8a6a2", fontSize: "12px" }}>or</span>
-            <div style={{ flex: 1, height: "1px", background: "rgba(255,255,255,0.06)" }} />
+            <strong>Default Login:</strong><br />
+            Email: {DEFAULT_EMAIL}<br />
+            Password: {DEFAULT_PASSWORD}
           </div>
-
-          {/* Guest shortcut */}
-          <button
-            onClick={handleGuestLogin}
-            style={{
-              width: "100%",
-              padding: "14px",
-              borderRadius: "14px",
-              border: "1px solid rgba(255,255,255,0.08)",
-              background: "transparent",
-              color: "#a8a6a2",
-              fontSize: "14px",
-              fontWeight: 500,
-              cursor: "pointer",
-              fontFamily: "inherit",
-              transition: "all 0.2s ease",
-            }}
-          >
-            Continue as Guest
-          </button>
 
         </div>
 

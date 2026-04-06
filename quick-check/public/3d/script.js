@@ -78,7 +78,6 @@ const POSTER_IMAGE_CONFIG = {
   ],
 };
 
-const THREE_ROOM_IMAGES_KEY = "habo_3d_room_images";
 const THREE_TROPHY_IMAGES_KEY = "habo_3d_trophy_images";
 
 function loadUserImageList(key) {
@@ -101,7 +100,6 @@ function resolveImagePath(folderPath, candidate) {
   return `${folderPath}${candidate}`;
 }
 
-const userRoomImages = loadUserImageList(THREE_ROOM_IMAGES_KEY);
 const userTrophyImages = loadUserImageList(THREE_TROPHY_IMAGES_KEY);
 
 const GHOST_TUNING = {
@@ -660,10 +658,6 @@ let ghostRefreshAccumulator = 0;
 let ghostModelTemplate = null;
 
 function getPosterImagePath(index) {
-  if (userRoomImages.length > 0) {
-    return userRoomImages[index] || null;
-  }
-
   const filename = POSTER_IMAGE_CONFIG.files[index];
   return resolveImagePath(POSTER_IMAGE_CONFIG.folderPath, filename);
 }
